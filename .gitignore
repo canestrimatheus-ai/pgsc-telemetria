@@ -1,0 +1,31 @@
+# Ambientes virtuais
+venv/
+env/
+.env
+.env.*
+!.env.example
+
+# Bancos de dados e dados locais
+*.db
+*.db-shm
+*.db-wal
+backups/
+
+# Arquivos de dados temporários e uploads
+*.xlsx
+*.xls
+*.jfif
+*.jpg
+*.jpeg
+*.png
+*.pdf
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Logs e testes
+*.log
+test_*.py

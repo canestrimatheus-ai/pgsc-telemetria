@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guia Funcional & Apresentação · PGCSC Expresso Nepomuceno</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+    <style>
+        :root {
+            --c-navy: #0D1B2A;
+            --c-navy-dark: #070E17;
+            --c-blue: #1A56DB;
+            --c-blue-lt: #EBF2FF;
+            --c-blue-hover: #1444B8;
+            --c-amber: #D97706;
+            --c-amber-lt: #FEF3C7;
+            --c-red: #DC2626;
+            --c-red-lt: #FEE2E2;
+            --c-green: #059669;
+            --c-green-lt: #D1FAE5;
+            --c-bg: #F8FAFC;
+            --c-card-bg: #FFFFFF;
+            --c-border: #E2E8F0;
+            --c-text: #0F172A;
+            --c-muted: #64748B;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+            --shadow-lg: 0 12px 32px rgba(0,0,0,0.12);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 18px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html { scroll-behavior: smooth; font-family: 'Inter', system-ui, sans-serif; background: var(--c-bg); color: var(--c-text); }
+
+        body { display: flex; min-height: 100vh; background: var(--c-bg); }
+
+        /* ── Sidebar Nav ── */
+        .guide-sidebar {
+            width: 260px;
+            background: var(--c-navy);
+            color: #fff;
+            padding: 24px 16px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            border-right: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .guide-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 28px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .logo-icon { font-size: 26px; }
+        .logo-title h1 { font-size: 15px; font-weight: 800; color: #fff; line-height: 1.2; }
+        .logo-title span { font-size: 11px; color: #94A3B8; }
+
+        .guide-menu { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+        .guide-menu a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            color: #94A3B8;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+            transition: all 0.15s ease;
+        }
+        .guide-menu a:hover, .guide-menu a.active {
+            background: var(--c-blue);
+            color: #fff;
+        }
+
+        .guide-back-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 11px;
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            text-decoration: none;
+            font-size: 12.5px;
+            font-weight: 700;
+            border-radius: var(--radius-sm);
+            border: 1px solid rgba(255,255,255,0.12);
+            transition: background 0.15s;
+        }
+        .guide-back-btn:hover { background: rgba(255,255,255,0.16); }
+
+        /* ── Main Container ── */
+        .guide-main {
+            flex: 1;
+            padding: 40px 48px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* ── Cover Hero Banner ── */
+        .hero-banner {
+            background: linear-gradient(135deg, var(--c-navy) 0%, #1E293B 100%);
+            color: #fff;
+            padding: 36px 40px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero-banner::after {
+            content: "🛡️";
+            position: absolute;
+            right: -20px;
+            bottom: -30px;
+            font-size: 160px;
+            opacity: 0.08;
+            pointer-events: none;
+        }
+        .hero-badge {
+            display: inline-block;
+            background: rgba(26, 86, 219, 0.3);
+            border: 1px solid rgba(147, 197, 253, 0.3);
+            color: #93C5FD;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 50px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+        .hero-title { font-size: 28px; font-weight: 900; line-height: 1.25; margin-bottom: 10px; }
+        .hero-subtitle { font-size: 14.5px; color: #CBD5E1; max-width: 750px; line-height: 1.6; }
+
+        /* ── Section Cards ── */
+        .section-card {
+            background: var(--c-card-bg);
+            border: 1px solid var(--c-border);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            margin-bottom: 36px;
+            box-shadow: var(--shadow-md);
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--c-border);
+        }
+        .section-icon {
+            width: 42px;
+            height: 42px;
+            background: var(--c-blue-lt);
+            color: var(--c-blue);
+            font-size: 22px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .section-title h2 { font-size: 19px; font-weight: 800; color: var(--c-navy); }
+        .section-title p { font-size: 12.5px; color: var(--c-muted); }
+
+        .section-p { font-size: 14px; line-height: 1.65; color: #334155; margin-bottom: 20px; }
+
+        /* ── Screenshot Frame ── */
+        .shot-frame {
+            border: 1px solid var(--c-border);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            margin: 20px 0 24px 0;
+            background: #F1F5F9;
+        }
+        .shot-frame img { width: 100%; display: block; height: auto; }
+        .shot-caption {
+            background: #F8FAFC;
+            border-top: 1px solid var(--c-border);
+            padding: 10px 16px;
+            font-size: 12px;
+            color: var(--c-muted);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* ── Feature Grid ── */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+        .feature-item {
+            background: #F8FAFC;
+            border: 1px solid var(--c-border);
+            border-radius: var(--radius-md);
+            padding: 16px 18px;
+        }
+        .feature-item strong { display: block; font-size: 13.5px; color: var(--c-navy); margin-bottom: 4px; font-weight: 700; }
+        .feature-item p { font-size: 12.5px; color: var(--c-muted); line-height: 1.5; }
+
+        /* ── Matrix Table ── */
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin-top: 16px;
+        }
+        .matrix-table th {
+            background: #F1F5F9;
+            color: var(--c-navy);
+            font-weight: 700;
+            text-align: left;
+            padding: 10px 14px;
+            border-bottom: 2px solid var(--c-border);
+            font-size: 11.5px;
+            text-transform: uppercase;
+        }
+        .matrix-table td { padding: 12px 14px; border-bottom: 1px solid var(--c-border); }
+        .matrix-table tr:last-child td { border-bottom: none; }
+
+        .pill {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 800;
+        }
+        .pill.yellow { background: var(--c-amber-lt); color: var(--c-amber); }
+        .pill.orange { background: #FFEDD5; color: #EA580C; }
+        .pill.red { background: var(--c-red-lt); color: var(--c-red); }
+
+        /* ── Copy Box ── */
+        .copy-box {
+            background: #0F172A;
+            color: #E2E8F0;
+            padding: 20px;
+            border-radius: var(--radius-md);
+            font-family: monospace;
+            font-size: 12.5px;
+            line-height: 1.7;
+            position: relative;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            background: var(--c-blue);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 6px 14px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .copy-btn:hover { background: var(--c-blue-hover); }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            body { flex-direction: column; }
+            .guide-sidebar { width: 100%; height: auto; position: static; }
+            .guide-main { padding: 24px 16px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ══ SIDEBAR NAV ══ -->
+    <nav class="guide-sidebar">
+        <div class="guide-logo">
+            <span class="logo-icon">🛡️</span>
+            <div class="logo-title">
+                <h1>Guia PGCSC</h1>
+                <span>Expresso Nepomuceno</span>
+            </div>
+        </div>
+        <div class="guide-menu">
+            <a href="#visao-geral" class="active">📌 Visão Geral & Matriz</a>
+            <a href="#kanban">⚡ Central de Ações</a>
+            <a href="#painel">📊 Painel Executivo</a>
+            <a href="#prontuario">🚗 Prontuário 360°</a>
+            <a href="#importar">📥 Importador & Excel</a>
+            <a href="#email-template">✉️ Modelo de E-mail</a>
+        </div>
+        <a href="{{ url_for('index') }}" class="guide-back-btn">
+            ⬅️ Voltar ao Sistema PGCSC
+        </a>
+    </nav>
+
+    <!-- ══ MAIN CONTENT ══ -->
+    <main class="guide-main">
+
+        <!-- Hero Header -->
+        <div class="hero-banner">
+            <span class="hero-badge">Manual Interativo & Guia de Recursos</span>
+            <h1 class="hero-title">Sistema Corporativo PGCSC</h1>
+            <p class="hero-subtitle">
+                Plataforma corporativa de gestão, controle e monitoramento de motoristas reincidentes em excesso de velocidade. 
+                Desenvolvida para automatizar o procedimento oficial entre Telemetria, DECAM, RH, Gestores e Instrutores.
+            </p>
+        </div>
+
+        <!-- SECTION 1: VISÃO GERAL -->
+        <section id="visao-geral" class="section-card">
+            <div class="section-header">
+                <div class="section-icon">📌</div>
+                <div class="section-title">
+                    <h2>Visão Geral & Matriz Corporativa de Risco</h2>
+                    <p>Estrutura de tratamento por nível de reincidência e enquadramento</p>
+                </div>
+            </div>
+            <p class="section-p">
+                O <b>PGCSC</b> elimina completamente os controles manuais em planilhas dispersas. Toda vez que a Telemetria emite a remessa mensal, o sistema lê os dados, calcula o número de ocorrências acumuladas nos últimos 12 meses e atribui a faixa de risco correspondente:
+            </p>
+
+            <table class="matrix-table">
+                <thead>
+                    <tr>
+                        <th>Faixa de Risco</th>
+                        <th>Nível</th>
+                        <th>Ocorrências (12m)</th>
+                        <th>Ação Requerida & Tratamento</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="pill yellow">🟡 AMARELA</span></td>
+                        <td><b>Nível 1</b></td>
+                        <td>1º Evento</td>
+                        <td>Reciclagem Preventiva com Instrutor DECAM (Online/Presencial).</td>
+                    </tr>
+                    <tr>
+                        <td><span class="pill orange">🟠 LARANJA</span></td>
+                        <td><b>Nível 2 e 3</b></td>
+                        <td>2 a 3 Eventos</td>
+                        <td>Elaboração de PDI + Viagem Assistida acompanhada por Instrutor.</td>
+                    </tr>
+                    <tr>
+                        <td><span class="pill red">🔴 VERMELHA</span></td>
+                        <td><b>Nível 4</b></td>
+                        <td>4+ Eventos (Crítico)</td>
+                        <td>Apresentação no Comitê de Avaliação Executiva + Suspensão / Medida Disciplinar.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- SECTION 2: CENTRAL DE AÇÕES (KANBAN) -->
+        <section id="kanban" class="section-card">
+            <div class="section-header">
+                <div class="section-icon">⚡</div>
+                <div class="section-title">
+                    <h2>1. Central de Ações (Quadro Kanban)</h2>
+                    <p>Gestão visual do ciclo de tratamento em tempo real</p>
+                </div>
+            </div>
+            <p class="section-p">
+                Organiza a frota em <b>5 colunas estruturadas</b> conforme a etapa atual do processo. Permite saber exatamente quem precisa fazer reciclagem, quem está aguardando agendamento e quem está sob monitoramento:
+            </p>
+
+            <div class="shot-frame">
+                <img src="/static/img/kanban.jpg" alt="Central de Ações Kanban">
+                <div class="shot-caption">📷 Tela da Central de Ações com busca ativa e visualização por colunas</div>
+            </div>
+
+            <div class="feature-grid">
+                <div class="feature-item">
+                    <strong>🔍 Busca Instantânea</strong>
+                    <p>Digite qualquer nome ou código de matrícula. Os cards correspondentes são filtrados na hora e o texto buscado ganha <b>destaque amarelo (highlight)</b>.</p>
+                </div>
+                <div class="feature-item">
+                    <strong>🏢 Filtros por Operação e Gestor</strong>
+                    <p>Selecione filiais específicas (ex: BRACELL, SUZANO) ou filtre diretamente pela carteira de um gestor responsável.</p>
+                </div>
+                <div class="feature-item">
+                    <strong>▼ Expansão de Coluna</strong>
+                    <p>Ao clicar no botão <i>"▼ Ver todos os X motoristas"</i>, a coluna expande e exibe 100% da lista sem necessidade de recarregar a página.</p>
+                </div>
+                <div class="feature-item">
+                    <strong>📇 Cards Detalhados</strong>
+                    <p>Exibe matrícula badge, etiqueta de risco (🔴 Crítico, 🟠 Reincidente, 🟡 Atenção), nome em Title Case, filial e quantidade de reciclagens.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: PAINEL EXECUTIVO -->
+        <section id="painel" class="section-card">
+            <div class="section-header">
+                <div class="section-icon">📊</div>
+                <div class="section-title">
+                    <h2>2. Painel Executivo (KPIs & Analíticos)</h2>
+                    <p>Indicadores consolidados para diretoria e gerência de operações</p>
+                </div>
+            </div>
+            <p class="section-p">
+                Oferece inteligência de dados com métricas globais sobre a evolução do programa e a taxa de reincidência da empresa:
+            </p>
+
+            <div class="shot-frame">
+                <img src="/static/img/painel.jpg" alt="Painel Executivo">
+                <div class="shot-caption">📷 Painel Executivo com KPIs e gráficos dinâmicos de desempenho</div>
+            </div>
+
+            <div class="feature-grid">
+                <div class="feature-item">
+                    <strong>📈 Evolução Mensal</strong>
+                    <p>Gráfico comparativo mês a mês demonstrando o total de eventos registrados vs. o número de condutores reincidentes.</p>
+                </div>
+                <div class="feature-item">
+                    <strong>🎯 Distribuição por Faixa de Risco</strong>
+                    <p>Gráfico de rosca apresentando a proporção exata da frota enquadrada em cada faixa de gravidade.</p>
+                </div>
+                <div class="feature-item">
+                    <strong>🏢 Ranking por Operação</strong>
+                    <p>Classificação das filiais por volume de ocorrências para direcionamento preventivo da equipe de segurança.</p>
+                </div>
+                <div class="feature-item">
+                    <strong>📌 Indicadores de Metas</strong>
+                    <p>Acompanhamento contínuo da Taxa de Reincidência (Meta &lt; 15%) e Efetividade do Programa (Meta &gt; 85%).</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: PRONTUÁRIO 360° -->
+        <section id="prontuario" class="section-card">
+            <div class="section-header">
+                <div class="section-icon">🚗</div>
+                <div class="section-title">
+                    <h2>3. Prontuário Individual do Motorista (Ficha 360°)</h2>
+                    <p>Histórico completo e gestão individualizada do condutor</p>
+                </div>
+            </div>
+            <p class="section-p">
+                Acessado com 1 clique sobre qualquer motorista. Centraliza todas as informações do profissional em uma janela flutuante organizada:
+            </p>
+
+            <div class="shot-frame">
+                <img src="/static/img/prontuario.jpg" alt="Prontuário do Motorista">
+                <div class="shot-caption">📷 Prontuário individual com linha do tempo de 4 etapas e histórico</div>
+            </div>
+
+            <div class="feature-grid">
+                <div class="feature-item">
+                    <strong>🛤️ Linha do Tempo (Stepper)</strong>
+                    <p>Indicador em 4 etapas marcando o progresso: <i>Enquadramento ➔ Reciclagem ➔ PDI / Reunião ➔ Monitoramento 90d</i>.</p>
+                </div>
+                <div class="feature-item">
+                    <strong>📋 Histórico dos Últimos 12 Meses</strong>
+                    <p>Tabela com todas as reciclagens do motorista, contendo data de envio, instrutor DECAM responsável e status atual.</p>
+                </div>
+                <div class="feature-item">
+                    <strong>✏️ Edição Rápida de Status</strong>
+                    <p>Formulário simples para alterar o status para <i>Agendado, Concluído, Cancelado ou Mensagem Enviada</i> e salvar observações.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 5: IMPORTAÇÃO E EXPORTAÇÃO -->
+        <section id="importar" class="section-card">
+            <div class="section-header">
+                <div class="section-icon">📥</div>
+                <div class="section-title">
+                    <h2>4. Importação Automática & Exportação em Excel</h2>
+                    <p>Integração ágil com a remessa mensal da telemetria</p>
+                </div>
+            </div>
+            <p class="section-p">
+                Processamento instantâneo da planilha padrão da Telemetria sem necessidade de digitação:
+            </p>
+
+            <div class="shot-frame">
+                <img src="/static/img/importar.jpg" alt="Importador da Telemetria">
+                <div class="shot-caption">📷 Tela de importação de arquivo Excel .xlsx por Drag & Drop</div>
+            </div>
+
+            <div class="feature-grid">
+                <div class="feature-item">
+                    <strong>📄 Drag & Drop (.xlsx)</strong>
+                    <p>Basta arrastar a planilha mensal enviada pela Telemetria para a caixa pontilhada. O sistema lê e processa os dados automaticamente.</p>
+                </div>
+                <div class="feature-item">
+                    <strong>🔄 Recálculo Automático</strong>
+                    <p>A matriz de risco da frota inteira é recalculada na hora, atualizando contadores, reincidências e enquadramentos.</p>
+                </div>
+                <div class="feature-item">
+                    <strong>📤 Exportação Consolidada</strong>
+                    <p>Botão <i>"📤 Exportar Dados"</i> na barra lateral que gera um arquivo `.xlsx` completo com abas de Motoristas, Reciclagens e PDIs.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 6: TEMPLATE EMAIL -->
+        <section id="email-template" class="section-card">
+            <div class="section-header">
+                <div class="section-icon">✉️</div>
+                <div class="section-title">
+                    <h2>5. Modelo de E-mail de Apresentação</h2>
+                    <p>Copie e cole o texto abaixo para enviar por e-mail à equipe</p>
+                </div>
+            </div>
+
+            <div class="copy-box">
+                <button class="copy-btn" onclick="copyEmailText()">📋 Copiar Texto</button>
+<code id="emailText">Assunto: [Apresentação] Sistema Corporativo de Gestão de Reciclagens (PGCSC)
+
+Prezados,
+
+Gostaria de apresentar a nova Plataforma PGCSC (Programa Corporativo de Gestão da Segurança em Condução), desenvolvida para padronizar e automatizar o controle de motoristas reincidentes em excesso de velocidade na Expresso Nepomuceno.
+
+A ferramenta conecta as ações entre Telemetria, DECAM, RH, Gestores de Operação e Instrutores.
+
+Principais Recursos da Plataforma:
+1. Central de Ações (Kanban): Acompanhamento visual dos condutores em 5 etapas com busca por nome/código e expansão de listas.
+2. Painel Executivo: Dashboards com indicadores globais de efetividade, taxa de reincidência e relatórios por filial.
+3. Prontuário 360°: Histórico completo individual do condutor com linha do tempo de tratamento e registro de instrutores.
+4. Importação Automática: Processamento direto da planilha Excel (.xlsx) mensal da telemetria sem digitação manual.
+
+A plataforma está instalada e pronta para operação no link local da rede.</code>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        function copyEmailText() {
+            const txt = document.getElementById('emailText').innerText;
+            navigator.clipboard.writeText(txt).then(() => {
+                alert('✅ Texto do e-mail copiado com sucesso!');
+            });
+        }
+
+        // Highlight active menu on scroll
+        window.addEventListener('scroll', () => {
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('.guide-menu a');
+            let current = '';
+
+            sections.forEach(sec => {
+                const top = sec.offsetTop - 100;
+                if (window.scrollY >= top) {
+                    current = sec.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

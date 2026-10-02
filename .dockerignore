@@ -1,0 +1,12 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.git
+.gitignore
+*.zip
+*.exe
+*.jfif
+*.pdf
+_*.txt
+_ssh.py

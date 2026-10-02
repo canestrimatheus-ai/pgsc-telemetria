@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>PGCSC · Gestão de Reciclagens | Expresso Nepomuceno</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ v }}">
+    <script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+    <script>
+        window.CURRENT_USER = {{ user|tojson }};
+        window.API_BASE = "{{ request.script_root }}";
+        if (window.API_BASE) {
+            const _origFetch = window.fetch;
+            window.fetch = function(url, options) {
+                if (typeof url === 'string') {
+                    if (url.startsWith('/api/') || url === '/api' || url.startsWith('/guia') || url === '/guia') {
+                        url = window.API_BASE + url;
+                    }
+                }
+                return _origFetch.call(this, url, options);
+            };
+        }
+    </script>
+</head>
+<body>
+<div class="shell">
+
+    <!-- ═══ SIDEBAR ═══ -->
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleMobileSidebar()"></div>
+    <nav class="sidebar" id="sidebar-nav">
+        <div class="sidebar-logo">
+            <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                <img src="{{ url_for('static', filename='img/logo_nepomuceno_negativo.png') }}" alt="Expresso Nepomuceno" class="sidebar-logo-img">
+                <button class="btn-close-mobile-nav" onclick="toggleMobileSidebar()">✕</button>
+            </div>
+            <span class="sidebar-logo-sub">PLATAFORMA PGCSC</span>
+        </div>
+        <div class="sidebar-nav">
+            <button class="nav-btn active" data-tab="kanban">
+                <span class="nav-icon">⚡</span> Central de Ações
+            </button>
+            <button class="nav-btn" data-tab="painel">
+                <span class="nav-icon">📊</span> Painel Executivo
+            </button>
+            <button class="nav-btn" data-tab="efetividade">
+                <span class="nav-icon">🎯</span> Efetividade
+            </button>
+            <button class="nav-btn" data-tab="motoristas">
+                <span class="nav-icon">🚗</span> Motoristas
+            </button>
+            <button class="nav-btn" data-tab="mensal">
+                <span class="nav-icon">📅</span> Análise Mensal
+            </button>
+            <button class="nav-btn" data-tab="operacoes">
+                <span class="nav-icon">🏢</span> Operações
+            </button>
+            {% if user.role == 'MATRIZ' %}
+            <button class="nav-btn" data-tab="usuarios">
+                <span class="nav-icon">👥</span> Gestão de Usuários
+            </button>
+            {% endif %}
+            {% if user.role in ['MATRIZ', 'TREINAMENTO'] %}
+            <button class="nav-btn" data-tab="importar">
+                <span class="nav-icon">📥</span> Importar Planilha
+            </button>
+            {% endif %}
+            {% if user.role == 'MATRIZ' %}
+            <button class="nav-btn" data-tab="configuracoes">
+                <span class="nav-icon">⚙️</span> Configurações
+            </button>
+            {% endif %}
+        </div>
+        <div class="sidebar-bottom" style="display:flex; flex-direction:column; gap:8px;">
+            <div style="padding:10px 12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <span style="font-size:12px; font-weight:700; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:130px;">{{ user.nome }}</span>
+                    {% if user.role == 'MATRIZ' %}
+                    <span style="font-size:10px; font-weight:800; color:#93c5fd; background:rgba(26,86,219,0.3); padding:2px 6px; border-radius:4px; border:1px solid rgba(147,197,253,0.3);">MATRIZ</span>
+                    {% elif user.role == 'TREINAMENTO' %}
+                    <span style="font-size:10px; font-weight:800; color:#c084fc; background:rgba(147,51,234,0.3); padding:2px 6px; border-radius:4px; border:1px solid rgba(192,132,252,0.3);" title="{{ user.operacao }}">TREINAMENTO</span>
+                    {% else %}
+                    <span style="font-size:10px; font-weight:800; color:#86efac; background:rgba(22,101,52,0.3); padding:2px 6px; border-radius:4px; border:1px solid rgba(134,239,172,0.3);" title="{{ user.operacao }}">{{ user.operacao }}</span>
+                    {% endif %}
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-size:11px; color:var(--c-sidtext); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:130px;">{{ user.email }}</span>
+                    <a href="{{ url_for('logout_view') }}" style="font-size:11px; font-weight:700; color:#fca5a5; text-decoration:none;" title="Sair do sistema">Sair 🚪</a>
+                </div>
+            </div>
+            <a href="{{ url_for('guia') }}" target="_blank" class="export-link" style="background:rgba(26,86,219,0.25); border-color:var(--c-blue); color:#fff;">📖 Guia Funcional (HTML)</a>
+            <a href="{{ url_for('api_exportar_excel') }}" class="export-link">📤 Exportar Dados</a>
+        </div>
+    </nav>
+
+    <!-- ═══ MAIN ═══ -->
+    <div class="main">
+
+        <!-- Topbar -->
+        <header class="topbar">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <button class="btn-hamburger" id="btn-hamburger" onclick="toggleMobileSidebar()" aria-label="Abrir Menu">
+                    <span></span><span></span><span></span>
+                </button>
+                <div class="topbar-left">
+                    <h1 id="page-title">Central de Ações</h1>
+                    <p id="page-sub">Programa corporativo de prevenção ao excesso de velocidade</p>
+                </div>
+            </div>
+            <div class="topbar-right">
+                <div class="kpi-pill">
+                    <span class="kpi-p-val" id="hdr-v-total">–</span>
+                    <span class="kpi-p-lbl">motoristas</span>
+                </div>
+                <div class="kpi-pill danger">
+                    <span class="kpi-p-val" id="hdr-v-criticos">–</span>
+                    <span class="kpi-p-lbl">críticos</span>
+                </div>
+                <div class="kpi-pill success">
+                    <span class="kpi-p-val" id="hdr-v-efetividade">–</span>
+                    <span class="kpi-p-lbl">efetividade</span>
+                </div>
+                <div class="user-pill-topbar" style="display:flex; align-items:center; gap:8px; padding:4px 10px 4px 12px; background:#F8FAFC; border:1px solid var(--c-border); border-radius:30px; margin-left:6px; box-shadow:0 1px 2px rgba(0,0,0,0.04);">
+                    <span style="font-size:12px; font-weight:700; color:var(--c-text);">{{ user.nome }}</span>
+                    {% if user.role == 'MATRIZ' %}
+                    <span style="font-size:10px; font-weight:800; color:#1D4ED8; background:#EFF6FF; border:1px solid #BFDBFE; padding:2px 7px; border-radius:12px; letter-spacing:0.02em;">🏢 MATRIZ</span>
+                    {% elif user.role == 'TREINAMENTO' %}
+                    <span style="font-size:10px; font-weight:800; color:#6B21A8; background:#F3E8FF; border:1px solid #D8B4FE; padding:2px 7px; border-radius:12px; letter-spacing:0.02em;" title="{{ user.operacao }}">🎓 TREINAMENTO</span>
+                    {% else %}
+                    <span style="font-size:10px; font-weight:800; color:#047857; background:#ECFDF5; border:1px solid #A7F3D0; padding:2px 7px; border-radius:12px; letter-spacing:0.02em;" title="{{ user.operacao }}">📍 {{ user.operacao }}</span>
+                    {% endif %}
+                    <a href="{{ url_for('logout_view') }}" style="font-size:11.5px; color:#DC2626; text-decoration:none; margin-left:2px; font-weight:700; display:flex; align-items:center; gap:3px; padding:3px 6px; border-radius:6px; transition:background 0.15s;" title="Sair do sistema">
+                        <span>Sair</span> 🚪
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- ══ TAB KANBAN ══ -->
+        <section class="tab active" id="tab-kanban">
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <div class="filters-row">
+                    <input type="text" class="sel" id="k-busca" placeholder="🔍 Buscar motorista..." style="width:200px">
+                    <select class="sel" id="k-ano"><option value="">Todos os Anos</option></select>
+                    <select class="sel" id="k-mes"><option value="">Todos os Meses</option></select>
+                    <select class="sel" id="k-op"><option value="">Todas as Operações</option></select>
+                    <select class="sel" id="k-gestor"><option value="">Todos os Gestores</option></select>
+                    <button class="btn-ghost" onclick="resetKanbanFilters()">Limpar</button>
+                </div>
+                <div class="chips-row">
+                    <span class="chip blue">📋 <strong id="k-total">0</strong> em acompanhamento no ano</span>
+                    <span class="chip amber">⚠️ <strong id="k-reincidentes">0</strong> reincidentes</span>
+                    <span class="chip red">🚨 <strong id="k-criticos">0</strong> comitê / permanência</span>
+                </div>
+            </div>
+
+            <!-- Seletor de Etapas Mobile para Escalonamento PGSC -->
+            <div class="mobile-kanban-tabs" id="mobile-kanban-tabs">
+                <button class="m-ktab active" onclick="setMobileKanbanCol(0, this)">1º Enquadr. (<span id="m-cnt-enquadramento">0</span>)</button>
+                <button class="m-ktab" onclick="setMobileKanbanCol(1, this)">1ª Reinc. (<span id="m-cnt-reinc1">0</span>)</button>
+                <button class="m-ktab" onclick="setMobileKanbanCol(2, this)">2ª Reinc. (<span id="m-cnt-reinc2">0</span>)</button>
+                <button class="m-ktab" onclick="setMobileKanbanCol(3, this)">3ª Reinc. (<span id="m-cnt-reinc3">0</span>)</button>
+                <button class="m-ktab" onclick="setMobileKanbanCol(4, this)">4ª Reinc. (<span id="m-cnt-reinc4">0</span>)</button>
+            </div>
+            <!-- Kanban columns: Escalonamento de Consequências PGSC -->
+            <div class="kanban-body">
+                <div class="k-col m-col-active">
+                    <div class="k-head kh-blue">
+                        <div>
+                            <div style="font-weight:800;">1º Enquadramento</div>
+                            <div style="font-size:10.5px; opacity:0.9; font-weight:normal;">Reciclagem</div>
+                        </div>
+                        <span class="k-cnt" id="cnt-enquadramento">0</span>
+                    </div>
+                    <div class="k-cards" id="k-enquadramento"></div>
+                </div>
+                <div class="k-col">
+                    <div class="k-head kh-amber">
+                        <div>
+                            <div style="font-weight:800;">1ª Reincidência</div>
+                            <div style="font-size:10.5px; opacity:0.9; font-weight:normal;">Reciclagem + Termo</div>
+                        </div>
+                        <span class="k-cnt" id="cnt-reinc1">0</span>
+                    </div>
+                    <div class="k-cards" id="k-reinc1"></div>
+                </div>
+                <div class="k-col">
+                    <div class="k-head kh-orange">
+                        <div>
+                            <div style="font-weight:800;">2ª Reincidência</div>
+                            <div style="font-size:10.5px; opacity:0.9; font-weight:normal;">Viagem Assist. + PDI + Adv</div>
+                        </div>
+                        <span class="k-cnt" id="cnt-reinc2">0</span>
+                    </div>
+                    <div class="k-cards" id="k-reinc2"></div>
+                </div>
+                <div class="k-col">
+                    <div class="k-head kh-rose">
+                        <div>
+                            <div style="font-weight:800;">3ª Reincidência</div>
+                            <div style="font-size:10.5px; opacity:0.9; font-weight:normal;">Comitê + Suspensão</div>
+                        </div>
+                        <span class="k-cnt" id="cnt-reinc3">0</span>
+                    </div>
+                    <div class="k-cards" id="k-reinc3"></div>
+                </div>
+                <div class="k-col">
+                    <div class="k-head kh-purple">
+                        <div>
+                            <div style="font-weight:800;">4ª Reincidência (12m/ano)</div>
+                            <div style="font-size:10.5px; opacity:0.9; font-weight:normal;">Avaliação Permanência</div>
+                        </div>
+                        <span class="k-cnt" id="cnt-reinc4">0</span>
+                    </div>
+                    <div class="k-cards" id="k-reinc4"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══ TAB PAINEL EXECUTIVO (BI) ══ -->
+        <section class="tab" id="tab-painel">
+            <div class="painel-scroll">
+                <!-- Toolbar de Filtro Premium BI — Multi-Select -->
+                <div class="bi-filter-bar" style="flex-wrap:wrap; gap:10px;">
+                    <div class="bi-filter-group" style="flex-wrap:wrap; gap:10px; flex:1;">
+
+                        <!-- MULTI-SELECT: Operações -->
+                        <div class="ms-wrapper" id="ms-op">
+                            <span class="bi-filter-label">🏢 Operação:</span>
+                            <div class="ms-trigger" id="ms-op-trigger" onclick="toggleMS('ms-op')">
+                                <span class="ms-label" id="ms-op-label">Todas as Operações</span>
+                                <span class="ms-arrow">▾</span>
+                            </div>
+                            <div class="ms-panel" id="ms-op-panel">
+                                <div class="ms-search-wrap"><input class="ms-search" id="ms-op-search" placeholder="🔍 Pesquisar..." oninput="filterMSOptions('ms-op', this.value)"></div>
+                                <div class="ms-item ms-select-all" onclick="toggleMSAll('ms-op')">
+                                    <input type="checkbox" id="ms-op-all"> <label for="ms-op-all">Selecionar tudo</label>
+                                </div>
+                                <div class="ms-options" id="ms-op-options"></div>
+                            </div>
+                        </div>
+
+                        <!-- MULTI-SELECT: Meses -->
+                        <div class="ms-wrapper" id="ms-mes">
+                            <span class="bi-filter-label" style="margin-left:4px;">🗓️ Mês:</span>
+                            <div class="ms-trigger" id="ms-mes-trigger" onclick="toggleMS('ms-mes')">
+                                <span class="ms-label" id="ms-mes-label">Todos os Meses</span>
+                                <span class="ms-arrow">▾</span>
+                            </div>
+                            <div class="ms-panel" id="ms-mes-panel">
+                                <div class="ms-item ms-select-all" onclick="toggleMSAll('ms-mes')">
+                                    <input type="checkbox" id="ms-mes-all"> <label for="ms-mes-all">Selecionar tudo</label>
+                                </div>
+                                <div class="ms-options" id="ms-mes-options"></div>
+                            </div>
+                        </div>
+
+                        <!-- ANO simples -->
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span class="bi-filter-label" style="margin-left:4px;">📅 Ano:</span>
+                            <select class="sel bi-sel" id="p-ano" onchange="loadPainel()" style="min-width:110px;">
+                                <option value="">Todos os Anos</option>
+                            </select>
+                        </div>
+
+                        <button class="bi-reset-btn" onclick="resetPainelFilter()">✕ Limpar Filtros</button>
+                    </div>
+                    <div class="bi-filter-status" id="p-op-tag">
+                        <span class="status-pulse"></span> Visão Consolidada
+                    </div>
+                </div>
+
+                <div class="kpi-row">
+                    <div class="kpi-box">
+                        <div class="kpi-lbl">Motoristas Monitorados</div>
+                        <div class="kpi-num" id="kpi-total">–</div>
+                        <div class="kpi-sub">Base Ativa PGCSC</div>
+                    </div>
+                    <div class="kpi-box">
+                        <div class="kpi-lbl">Total de Excessos / Reciclagens</div>
+                        <div class="kpi-num" id="kpi-rec">–</div>
+                        <div class="kpi-sub">Eventos Acumulados</div>
+                    </div>
+                    <div class="kpi-box warn" id="box-kpi-top-op">
+                        <div class="kpi-lbl">Operação c/ Maior Volume</div>
+                        <div class="kpi-num" id="kpi-top-op" style="font-size:14px; font-weight:800; line-height:1.25; word-break:break-word; min-height:36px; display:flex; align-items:center;">–</div>
+                        <div class="kpi-sub" id="kpi-top-op-sub">Filial Líder</div>
+                    </div>
+                    <div class="kpi-box">
+                        <div class="kpi-lbl">Média de Excessos / Motorista</div>
+                        <div class="kpi-num" id="kpi-media-rec">–</div>
+                        <div class="kpi-sub">Média Global</div>
+                    </div>
+                    <div class="kpi-box warn">
+                        <div class="kpi-lbl">Reincidentes (2+ events)</div>
+                        <div class="kpi-num" id="kpi-reinc">–</div>
+                        <div class="kpi-sub">2+ eventos em 12m</div>
+                    </div>
+                    <div class="kpi-box danger">
+                        <div class="kpi-lbl">Motoristas Críticos</div>
+                        <div class="kpi-num" id="kpi-crit">–</div>
+                        <div class="kpi-sub">Faixa Vermelha (>3 rec)</div>
+                    </div>
+                    <div class="kpi-box success">
+                        <div class="kpi-lbl">Concluídos / Aprovados</div>
+                        <div class="kpi-num" id="kpi-aprovados">–</div>
+                        <div class="kpi-sub">Processo Concluído</div>
+                    </div>
+                    <div class="kpi-box danger">
+                        <div class="kpi-lbl">Taxa de Reincidência</div>
+                        <div class="kpi-num" id="kpi-taxa">–</div>
+                        <div class="kpi-sub">Meta &lt; 15%</div>
+                    </div>
+                    <div class="kpi-box success">
+                        <div class="kpi-lbl">Efetividade Global</div>
+                        <div class="kpi-num" id="kpi-efet">–</div>
+                        <div class="kpi-sub">Meta &gt; 85%</div>
+                    </div>
+                </div>
+
+                <div class="charts-row">
+                    <div class="card">
+                        <div class="card-hdr" id="hdr-chart-mensal">📈 Evolução Mensal (Reciclagens & Reincidências)</div>
+                        <div class="chart-wrap"><canvas id="chartMensal"></canvas></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-hdr" id="hdr-chart-faixas">🎯 Distribuição por Faixa de Risco</div>
+                        <div class="chart-wrap"><canvas id="chartFaixas"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="two-cols" id="bi-row-bottom" style="gap:16px; margin-bottom:16px;">
+                    <div class="card" id="box-card-chart-ops">
+                        <div class="card-hdr">🏢 Ranking de Reciclagens por Operação / Filial</div>
+                        <div class="chart-wrap" style="height:280px"><canvas id="chartOps"></canvas></div>
+                    </div>
+
+                    <!-- Ranking Individual de Motoristas BI -->
+                    <div class="card" id="box-card-top-motoristas" style="flex:1;">
+                        <div class="card-hdr" style="display:flex; justify-content:space-between; align-items:center;">
+                            <span id="hdr-top-motoristas">🏆 Top 10 Motoristas com Maior Nº de Excessos</span>
+                            <span style="font-size:11px; color:var(--c-muted); font-weight:normal;">Clique no motorista para abrir o prontuário</span>
+                        </div>
+                        <div class="tbl-wrap" style="max-height:280px; overflow-y:auto;">
+                            <table class="tbl">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Motorista</th>
+                                        <th>Operação</th>
+                                        <th>Excessos</th>
+                                        <th>Faixa de Risco</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-top-motoristas-excessos"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 🤖 RELATÓRIO EXECUTIVO COM INTELIGÊNCIA ARTIFICIAL -->
+                <div class="card" style="border-left: 4px solid var(--c-blue); background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);">
+                    <div class="card-hdr" style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700;">
+                            🤖 Relatório Executivo com Inteligência Artificial — Análise Comparativa & Tendências
+                        </span>
+                        <button class="btn-ghost" onclick="loadRelatorioIA()" style="font-size:12px; padding:4px 10px;">
+                            🔄 Atualizar Relatório IA
+                        </button>
+                    </div>
+                    <div id="ai-report-body" style="padding:12px 4px;">
+                        <div style="text-align:center; color:var(--c-muted); padding:16px;">Carregando diagnóstico comparativo de IA...</div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ══ TAB EFETIVIDADE (Fluxo completo + Aderência + Reincidência) ══ -->
+        <section class="tab" id="tab-efetividade">
+            <div class="painel-scroll">
+                <!-- Filtros -->
+                <div class="bi-filter-bar" style="flex-wrap:wrap; gap:10px;">
+                    <div class="bi-filter-group" style="flex-wrap:wrap; gap:10px; flex:1;">
+                        <select class="sel bi-sel" id="ef-op"><option value="">Todas as Operações</option></select>
+                        <select class="sel bi-sel" id="ef-ano"><option value="">Todos os Anos</option></select>
+                        <select class="sel bi-sel" id="ef-mes"><option value="">Todos os Meses</option></select>
+                        <button class="bi-reset-btn" onclick="resetEfetividadeFilters()">✕ Limpar Filtros</button>
+                    </div>
+                    <div class="bi-filter-status" id="ef-tag">
+                        <span class="status-pulse"></span> Visão Consolidada
+                    </div>
+                </div>
+
+                <!-- KPIs do fluxo: EVENTO → INDICAÇÃO → REALIZAÇÃO → EFETIVIDADE -->
+                <div class="kpi-row">
+                    <div class="kpi-box">
+                        <div class="kpi-lbl">Motoristas que Necessitam Reciclagem</div>
+                        <div class="kpi-num" id="ef-necessitam">–</div>
+                        <div class="kpi-sub">Eventos no período</div>
+                    </div>
+                    <div class="kpi-box warn">
+                        <div class="kpi-lbl">Indicados / Solicitados</div>
+                        <div class="kpi-num" id="ef-indicados">–</div>
+                        <div class="kpi-sub">Indicações registradas</div>
+                    </div>
+                    <div class="kpi-box success">
+                        <div class="kpi-lbl">Reciclagens Realizadas</div>
+                        <div class="kpi-num" id="ef-realizados">–</div>
+                        <div class="kpi-sub">Status concluído</div>
+                    </div>
+                    <div class="kpi-box">
+                        <div class="kpi-lbl">Reciclagens Pendentes</div>
+                        <div class="kpi-num" id="ef-pendentes">–</div>
+                        <div class="kpi-sub" id="ef-andamento-sub">– em andamento</div>
+                    </div>
+                    <div class="kpi-box danger">
+                        <div class="kpi-lbl">Reciclagens Recusadas</div>
+                        <div class="kpi-num" id="ef-recusados">–</div>
+                        <div class="kpi-sub">Motivo registrado</div>
+                    </div>
+                    <div class="kpi-box success">
+                        <div class="kpi-lbl">Taxa de Aderência</div>
+                        <div class="kpi-num" id="ef-aderencia">–</div>
+                        <div class="kpi-sub">realizados / indicados × 100</div>
+                    </div>
+                    <div class="kpi-box warn">
+                        <div class="kpi-lbl">Reincidentes</div>
+                        <div class="kpi-num" id="ef-reincidentes">–</div>
+                        <div class="kpi-sub">Eventos em meses anteriores</div>
+                    </div>
+                    <div class="kpi-box danger">
+                        <div class="kpi-lbl">Em Alerta (meses consecutivos)</div>
+                        <div class="kpi-num" id="ef-alerta">–</div>
+                        <div class="kpi-sub" id="ef-alerta-sub">–</div>
+                    </div>
+                </div>
+
+                <!-- Comparativo entre períodos -->
+                <div class="card" style="margin-bottom:16px;">
+                    <div class="card-hdr">⚖️ Comparativo entre Períodos <span id="ef-comp-rotulo" style="font-weight:normal; font-size:12px; color:var(--c-muted);">— comparativo com o período anterior</span></div>
+                    <div class="tbl-wrap">
+                        <table class="tbl">
+                            <thead>
+                                <tr><th>Indicador</th><th>Período Atual</th><th id="ef-comp-col">Período Anterior</th><th>Variação</th></tr>
+                            </thead>
+                            <tbody id="tbody-ef-comparativo"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Gráficos -->
+                <div class="charts-row">
+                    <div class="card">
+                        <div class="card-hdr">🎯 Indicados × Realizados e Aderência por Mês</div>
+                        <div class="chart-wrap"><canvas id="chartEfetMensal"></canvas></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-hdr">🔁 Reincidência × Motoristas Necessitando Reciclagem</div>
+                        <div class="chart-wrap"><canvas id="chartEfetReinc"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- Por operação + drill-down de reincidentes -->
+                <div class="charts-row">
+                    <div class="card">
+                        <div class="card-hdr">🏢 Efetividade por Operação / Filial</div>
+                        <div class="tbl-wrap">
+                            <table class="tbl">
+                                <thead>
+                                    <tr><th>Operação</th><th>Motoristas</th><th>Indicados</th><th>Realizados</th><th>Recusados</th><th>Aderência</th></tr>
+                                </thead>
+                                <tbody id="tbody-ef-ops"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-hdr">🔁 Motoristas Reincidentes <label style="font-weight:normal; font-size:12px; float:right; cursor:pointer;"><input type="checkbox" id="ef-apenas-alerta" onchange="loadEfetividade()"> Somente alerta de meses consecutivos</label></div>
+                        <div style="padding:8px 12px 4px; border-bottom:1px solid var(--c-line);">
+                            <input type="text" class="sel" id="ef-reinc-busca" placeholder="🔍 Buscar motorista..." style="width:100%; font-size:12.5px;" oninput="filtrarTabelaReincidentes(this.value)">
+                        </div>
+                        <div class="tbl-wrap" style="max-height:340px; overflow-y:auto;">
+                            <table class="tbl">
+                                <thead>
+                                    <tr><th>Motorista</th><th>Operação</th><th>Eventos</th><th>Reincidências</th><th>Meses que Reincidiu</th><th>Consequência PGSC</th><th>Prontuário</th></tr>
+                                </thead>
+                                <tbody id="tbody-ef-reincidentes"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══ TAB MOTORISTAS ══ -->
+        <section class="tab" id="tab-motoristas">
+            <div class="toolbar">
+                <div class="filters-row">
+                    <input type="text" class="sel" id="m-busca" placeholder="🔍 Nome, código ou gestor..." style="width:200px">
+                    <select class="sel" id="m-op"><option value="">Todas as Operações</option></select>
+                    <select class="sel" id="m-faixa">
+                        <option value="">Todas as Faixas</option>
+                        <option value="VERMELHA">🔴 Vermelha (Crítico)</option>
+                        <option value="LARANJA">🟠 Laranja (Reincidente)</option>
+                        <option value="AMARELA">🟡 Amarela (Atenção)</option>
+                        <option value="VERDE">🟢 Verde (Aderente)</option>
+                    </select>
+                    <select class="sel" id="m-nivel">
+                        <option value="">Todos os Níveis</option>
+                        <option value="1">Nível 1</option>
+                        <option value="2">Nível 2</option>
+                        <option value="3">Nível 3</option>
+                        <option value="4">Nível 4</option>
+                    </select>
+                </div>
+            </div>
+            <div class="moto-content">
+                <div class="card">
+                    <div class="tbl-wrap">
+                        <table class="tbl">
+                            <thead>
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Motorista</th>
+                                    <th>Operação</th>
+                                    <th>Gestor</th>
+                                    <th>Faixa</th>
+                                    <th>Situação PGSC</th>
+                                    <th>Consequência Recomendada</th>
+                                    <th style="text-align:center">Eventos</th>
+                                    <th>Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-motoristas"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══ TAB MENSAL ══ -->
+        <section class="tab" id="tab-mensal">
+            <div class="tab-scroll">
+                <div class="card">
+                    <div class="card-hdr">📅 Análise Mensal Consolidada por Categoria de Indicadores</div>
+                    <div class="tbl-wrap">
+                        <table class="tbl">
+                            <thead>
+                                <tr>
+                                    <th>Categoria de Indicador</th>
+                                    <th>Janeiro</th>
+                                    <th>Fevereiro</th>
+                                    <th>Março</th>
+                                    <th>Abril</th>
+                                    <th>Total Acumulado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-mensal-linhas"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══ TAB OPERAÇÕES ══ -->
+        <section class="tab" id="tab-operacoes">
+            <div class="tab-scroll">
+                <div class="card">
+                    <div class="card-hdr" style="display:flex; justify-content:space-between; align-items:center;">
+                        <span>🏢 Ranking Consolidado por Operação &amp; Gestor Responsável</span>
+                        <span style="font-size:11.5px; color:var(--c-muted); font-weight:normal;">Clique na operação para filtrar o Painel Executivo</span>
+                    </div>
+                    <div class="tbl-wrap">
+                        <table class="tbl">
+                            <thead>
+                                <tr>
+                                    <th>#</th><th>Operação</th><th>Gestor Responsável</th><th>Reciclagens</th>
+                                    <th>Motoristas</th><th>Reincidentes</th><th>Taxa de Reincidência</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-ops"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══ TAB IMPORTAR ══ -->
+        <section class="tab" id="tab-importar">
+            <div class="import-wrap">
+                <div class="import-box">
+                    <div class="import-icon">📂</div>
+                    <h2>Importar Remessa Mensal da Telemetria</h2>
+                    <p>Arraste a planilha <strong>.xlsx</strong> padrão da telemetria ou clique para selecionar. O sistema processa automaticamente os enquadramentos e recalcula as faixas de risco de todos os motoristas.</p>
+                    <div id="drop-zone" class="dropzone">
+                        <div class="dz-inner">
+                            <span class="dz-icon">📄</span>
+                            <strong>Arraste o arquivo aqui</strong>
+                            <span>ou</span>
+                            <button class="btn-primary" onclick="document.getElementById('file-input').click()">Selecionar Arquivo .xlsx</button>
+                        </div>
+                        <input type="file" id="file-input" accept=".xlsx,.xls" style="display:none">
+                    </div>
+                    <div id="import-feedback" class="import-feedback hidden"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══ TAB CONFIGURAÇÕES ══ -->
+        <section class="tab" id="tab-configuracoes">
+            <div class="tab-scroll">
+                <div style="max-width:720px; margin:0 auto; display:flex; flex-direction:column; gap:20px; padding:8px 0;">
+
+                    <!-- Regras de Reincidência e Premiação (CONFIGURÁVEL — não validado) -->
+                    <div class="card" style="border-left: 4px solid var(--c-blue);">
+                        <div class="card-hdr">🧮 Regras de Reincidência &amp; Premiação <span style="font-size:11px; font-weight:normal; color:var(--c-amber);">⚠️ Regra ainda NÃO validada — o sistema apenas sinaliza, não aplica descontos</span></div>
+                        <p style="color:var(--c-muted); font-size:13px; margin-bottom:16px;">
+                            Regra discutida: motorista reincidente em <strong>N meses consecutivos</strong> teria um
+                            <strong>impacto de X% na premiação</strong>. Estes parâmetros ficam isolados aqui e
+                            <strong>desativados por padrão</strong> até validação definitiva pelo comitê.
+                        </p>
+                        <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+                            <div class="form-row" style="margin:0; min-width:160px;">
+                                <label>Meses consecutivos p/ reincidência</label>
+                                <input type="number" class="sel" id="cfg-reinc-meses" min="1" max="12">
+                            </div>
+                            <div class="form-row" style="margin:0; min-width:160px;">
+                                <label>Impacto na premiação (%)</label>
+                                <input type="number" class="sel" id="cfg-reinc-pct" min="0" max="100">
+                            </div>
+                            <div class="form-row" style="margin:0;">
+                                <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                                    <input type="checkbox" id="cfg-reinc-ativa"> Regra de reincidência ativa (sinalização)
+                                </label>
+                            </div>
+                            <div class="form-row" style="margin:0;">
+                                <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                                    <input type="checkbox" id="cfg-premio-ativa"> Regra de premiação ativa (apenas indicador)
+                                </label>
+                            </div>
+                            <button class="btn-primary" style="background:var(--c-blue); padding:9px 18px; font-size:13px; flex-shrink:0;" onclick="salvarRegras()">
+                                💾 Salvar Regras
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Excluir por Mês/Ano -->
+                    <div class="card" style="border-left: 4px solid var(--c-amber);">
+                        <div class="card-hdr">🗑️ Excluir Reciclagens por Mês / Ano</div>
+                        <p style="color:var(--c-muted); font-size:13px; margin-bottom:16px;">
+                            Remove todos os registros de reciclagens do mês e ano selecionados. Motoristas que ficarem sem nenhuma reciclagem serão removidos automaticamente da base. A ação é <strong>irreversível</strong>.
+                        </p>
+                        <div style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+                            <div class="form-row" style="margin:0; flex:1; min-width:140px;">
+                                <label>Ano</label>
+                                <select class="sel" id="cfg-ano"><option value="">Selecione o Ano</option></select>
+                            </div>
+                            <div class="form-row" style="margin:0; flex:1; min-width:140px;">
+                                <label>Mês</label>
+                                <select class="sel" id="cfg-mes">
+                                    <option value="">Selecione o Mês</option>
+                                    <option value="1">Janeiro</option>
+                                    <option value="2">Fevereiro</option>
+                                    <option value="3">Março</option>
+                                    <option value="4">Abril</option>
+                                    <option value="5">Maio</option>
+                                    <option value="6">Junho</option>
+                                    <option value="7">Julho</option>
+                                    <option value="8">Agosto</option>
+                                    <option value="9">Setembro</option>
+                                    <option value="10">Outubro</option>
+                                    <option value="11">Novembro</option>
+                                    <option value="12">Dezembro</option>
+                                </select>
+                            </div>
+                            <button class="btn-primary" style="background:var(--c-amber); color:#000; padding:9px 18px; font-size:13px; flex-shrink:0;" onclick="abrirConfirmExcluirMes()">
+                                🗑️ Excluir Mês Selecionado
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Reset Total -->
+                    <div class="card" style="border-left: 4px solid var(--c-red);">
+                        <div class="card-hdr">🚨 Limpar Banco de Dados Completamente</div>
+                        <p style="color:var(--c-muted); font-size:13px; margin-bottom:16px;">
+                            Apaga <strong>todos</strong> os motoristas, reciclagens e PDIs da base de dados. Use esta função para reiniciar o sistema do zero antes de importar uma nova planilha base. A ação é <strong>permanente e irreversível</strong>.
+                        </p>
+                        <button class="btn-primary" style="background:var(--c-red); padding:9px 18px; font-size:13px;" onclick="abrirConfirmLimparTotal()">
+                            🚨 Limpar Todo o Banco de Dados
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ══ TAB GESTÃO DE USUÁRIOS (APENAS MATRIZ) ══ -->
+        {% if user.role == 'MATRIZ' %}
+        <section class="tab" id="tab-usuarios">
+            <div class="toolbar" style="display:flex; justify-content:space-between; align-items:center; padding:12px 20px;">
+                <div>
+                    <h2 style="font-size:16px; font-weight:800; color:var(--c-text); display:flex; align-items:center; gap:8px;">
+                        <span>👥</span> Gestão de Usuários & Acessos
+                    </h2>
+                    <p style="font-size:12px; color:var(--c-muted); margin-top:2px;">
+                        Usuários da Matriz têm acesso total. Usuários de Operação visualizam apenas sua respectiva base.
+                    </p>
+                </div>
+                <button class="btn-primary" onclick="openModalNovoUsuario()" style="display:flex; align-items:center; gap:6px; padding:8px 16px; font-size:12.5px; font-weight:700;">
+                    <span>+</span> Cadastrar Novo Usuário
+                </button>
+            </div>
+
+            <div class="painel-scroll" style="padding:18px;">
+                <div class="card" style="overflow-x:auto; padding:0; border-radius:var(--r-md); box-shadow:var(--sh);">
+                    <table class="tbl" id="tbl-usuarios" style="width:100%; border-collapse:collapse;">
+                        <thead>
+                            <tr>
+                                <th style="padding:12px 16px;">NOME</th>
+                                <th style="padding:12px 16px;">E-MAIL / WHATSAPP</th>
+                                <th style="padding:12px 16px;">PERFIL</th>
+                                <th style="padding:12px 16px;">OPERAÇÃO VINCULADA</th>
+                                <th style="padding:12px 16px;">SENHA</th>
+                                <th style="padding:12px 16px;">STATUS</th>
+                                <th style="padding:12px 16px;">ÚLTIMO ACESSO</th>
+                                <th style="padding:12px 16px; text-align:right;">AÇÕES</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-usuarios">
+                            <tr><td colspan="8" style="text-align:center; padding:28px; color:var(--c-muted);">Carregando usuários...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+    </div><!-- /main -->
+</div><!-- /shell -->
+
+<!-- ═══ MODAL PRONTUÁRIO ═══ -->
+<div class="overlay" id="modal-prontuario">
+    <div class="modal" style="max-width:680px">
+        <div class="modal-top">
+            <div>
+                <div class="modal-eyebrow" id="modal-eyebrow">PRONTUÁRIO INDIVIDUAL DO MOTORISTA</div>
+                <div class="modal-title" id="modal-title">Caso #PGCSC-0000</div>
+            </div>
+            <button class="btn-close" onclick="closeModal('modal-prontuario')">✕</button>
+        </div>
+
+        <div class="driver-header" id="driver-header"></div>
+
+
+        <div class="sec-title">🔁 Reincidência & Efetividade</div>
+        <div id="prontuario-reincidencia" style="margin-bottom:16px;"></div>
+
+        <div class="sec-title" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>🕒 Linha do Tempo Individual</span>
+            <span style="font-size:11px; color:var(--c-muted); font-weight:normal;">Clique no mês para editar</span>
+        </div>
+        <div id="prontuario-timeline" style="margin-bottom:16px;"></div>
+
+        <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
+            <button class="btn-primary" id="btn-prontuario-aprovar" style="background:#10B981; padding:9px 18px; font-size:13px;" onclick="btnAprovarMotoristaAction()">
+                ✅ Aprovar & Concluir Motorista
+            </button>
+            <button class="btn-ghost" onclick="closeModal('modal-prontuario')">Fechar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ MODAL EDITAR RECICLAGEM DO MÊS ═══ -->
+<div class="overlay" id="modal-editar">
+    <div class="modal" style="max-width:500px">
+        <div class="modal-top">
+            <div class="modal-title">✏️ Atualizar Tratativa do Mês</div>
+            <button class="btn-close" onclick="closeModal('modal-editar')">✕</button>
+        </div>
+        <form id="form-editar" class="form-stack">
+            <input type="hidden" id="e-codigo">
+            <input type="hidden" id="e-rec-id">
+
+            <div class="form-row">
+                <label>Status da Reciclagem / Tratativa</label>
+                <select class="sel" id="e-status" style="font-weight:700;">
+                    <option value="PENDENTE">⏳ PENDENTE</option>
+                    <option value="MENSAGEM ENVIADA">📩 MENSAGEM ENVIADA</option>
+                    <option value="AGENDADO">📅 AGENDADO</option>
+                    <option value="CONCLUÍDO">✅ CONCLUÍDO</option>
+                    <option value="RECUSADO">🚫 RECUSADO (não realizada)</option>
+                    <option value="CANCELADO">✕ CANCELADO</option>
+                </select>
+            </div>
+
+            <div class="form-row">
+                <label>Data de Realização</label>
+                <input type="date" class="sel" id="e-data">
+            </div>
+
+            <div class="form-row">
+                <label>Responsável pela Realização</label>
+                <input type="text" class="sel" id="e-responsavel" placeholder="Quem conduziu / é responsável pela ação">
+            </div>
+
+            <div class="form-row">
+                <label>Instrutor DECAM</label>
+                <input type="text" class="sel" id="e-instrutor" placeholder="Nome do instrutor responsável">
+            </div>
+
+            <div class="form-row" id="row-e-resultado">
+                <label>Resultado da Ação</label>
+                <input type="text" class="sel" id="e-resultado" placeholder="Ex.: Concluída com aproveitamento, Apto, etc.">
+            </div>
+
+            <div class="form-row" id="row-e-motivo" style="display:none">
+                <label>Motivo de Não Realização / Recusa</label>
+                <input type="text" class="sel" id="e-motivo" placeholder="Descreva o motivo da recusa ou impedimento">
+            </div>
+
+            <div class="form-row">
+                <label>Observações / Registro</label>
+                <textarea class="sel" id="e-obs" rows="3" placeholder="Descreva os detalhes ou anotações desta tratativa..."></textarea>
+            </div>
+
+            <div class="modal-footer" style="padding-top:10px;">
+                <button type="button" class="btn-ghost" onclick="closeModal('modal-editar')">Cancelar</button>
+                <button type="submit" class="btn-primary" style="background:#1A56DB; color:#fff;">💾 Salvar Alterações</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ═══ MODAL CONFIRMAÇÃO APROVAÇÃO ═══ -->
+<div class="overlay" id="modal-confirm-aprovar">
+    <div class="modal" style="max-width:440px; text-align:center; padding:24px 28px;">
+        <div style="font-size:42px; margin-bottom:12px;">✅</div>
+        <h3 style="font-size:18px; font-weight:700; color:var(--c-text); margin-bottom:8px;">Aprovar & Concluir Motorista</h3>
+        <p id="confirm-aprovar-text" style="font-size:13.5px; color:var(--c-muted); margin-bottom:24px; line-height:1.5;">
+            Deseja aprovar e concluir o processo do motorista?
+        </p>
+        <div style="display:flex; gap:12px; justify-content:center;">
+            <button class="btn-ghost" onclick="closeModal('modal-confirm-aprovar')" style="padding:9px 18px; font-size:13px;">Cancelar</button>
+            <button class="btn-primary" id="btn-confirm-aprovar-submit" onclick="executearAprovacaoMotorista()" style="background:#10B981; padding:9px 20px; font-size:13px;">Sim, Aprovar Motorista</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ MODAL CONFIRMAR EXCLUIR MÊS ═══ -->
+<div class="overlay" id="modal-confirm-excluir-mes">
+    <div class="modal" style="max-width:460px; text-align:center; padding:28px;">
+        <div style="font-size:42px; margin-bottom:12px;">🗑️</div>
+        <h3 style="font-size:17px; font-weight:700; color:var(--c-text); margin-bottom:8px;">Excluir Reciclagens do Mês</h3>
+        <p id="confirm-excluir-mes-text" style="font-size:13.5px; color:var(--c-muted); margin-bottom:24px; line-height:1.6;">
+            Tem certeza que deseja excluir as reciclagens do mês selecionado?
+        </p>
+        <div style="display:flex; gap:12px; justify-content:center;">
+            <button class="btn-ghost" onclick="closeModal('modal-confirm-excluir-mes')" style="padding:9px 18px; font-size:13px;">Cancelar</button>
+            <button class="btn-primary" id="btn-confirm-excluir-mes" onclick="executarExcluirMes()" style="background:var(--c-amber); color:#000; padding:9px 20px; font-size:13px;">Sim, Excluir</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ MODAL CONFIRMAR LIMPAR BANCO ═══ -->
+<div class="overlay" id="modal-confirm-limpar-banco">
+    <div class="modal" style="max-width:480px; text-align:center; padding:28px;">
+        <div style="font-size:42px; margin-bottom:12px;">🚨</div>
+        <h3 style="font-size:17px; font-weight:700; color:var(--c-red); margin-bottom:8px;">Limpar Todo o Banco de Dados</h3>
+        <p style="font-size:13.5px; color:var(--c-muted); margin-bottom:8px; line-height:1.6;">
+            Esta ação irá apagar <strong>permanentemente</strong> todos os motoristas, reciclagens e PDIs do sistema.
+        </p>
+        <p style="font-size:13px; color:var(--c-red); margin-bottom:24px; font-weight:600;">⚠️ Esta ação não pode ser desfeita!</p>
+        <div style="display:flex; gap:12px; justify-content:center;">
+            <button class="btn-ghost" onclick="closeModal('modal-confirm-limpar-banco')" style="padding:9px 18px; font-size:13px;">Cancelar</button>
+            <button class="btn-primary" id="btn-confirm-limpar-banco" onclick="executarLimparBanco()" style="background:var(--c-red); padding:9px 20px; font-size:13px;">🚨 Confirmar Limpeza Total</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ═══ MODAL NOVO USUÁRIO (APENAS MATRIZ) ═══ -->
+<div class="overlay" id="modal-novo-usuario">
+    <div class="modal" style="max-width:520px">
+        <div class="modal-top">
+            <div>
+                <div class="modal-eyebrow">CONTROLE DE ACESSOS</div>
+                <div class="modal-title">👤 Cadastrar Novo Usuário</div>
+            </div>
+            <button class="btn-close" onclick="closeModal('modal-novo-usuario')">✕</button>
+        </div>
+        <p style="font-size:12px; color:var(--c-muted); margin-bottom:14px; line-height:1.4;">
+            O usuário receberá automaticamente um e-mail corporativo com link seguro para cadastrar sua senha pessoal e acessar o sistema.
+        </p>
+
+        <form id="form-novo-usuario" class="form-stack" onsubmit="handleSalvarNovoUsuario(event)">
+            <div class="form-row">
+                <label>Nome Completo</label>
+                <input type="text" class="sel" id="usr-nome" required placeholder="Ex: João da Silva">
+            </div>
+
+            <div class="form-row">
+                <label>E-mail Corporativo</label>
+                <input type="email" class="sel" id="usr-email" required placeholder="Ex: joao.silva@expressonepomuceno.com.br">
+            </div>
+
+            <div class="form-row">
+                <label>Telefone / WhatsApp (com DDD)</label>
+                <input type="text" class="sel" id="usr-telefone" placeholder="Ex: (35) 99999-8888">
+                <span style="font-size:11px; color:var(--c-muted); margin-top:3px;">O convite será enviado por WhatsApp (se informado) e por e-mail.</span>
+            </div>
+
+            <div class="form-row">
+                <label>Perfil de Acesso</label>
+                <select class="sel" id="usr-role" onchange="toggleOperacaoSelect('novo')" style="font-weight:600;">
+                    <option value="OPERACAO">Operação (Acesso restrito às suas unidades - Somente Leitura)</option>
+                    <option value="TREINAMENTO">Treinamento (Acesso total às ações das suas unidades, exceto usuários)</option>
+                    <option value="MATRIZ">Matriz (Acesso Total / Administrador Geral)</option>
+                </select>
+            </div>
+
+            <div class="form-row" id="group-usr-operacao">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <label style="font-weight:600; margin:0; font-size:12px; color:var(--c-text);">
+                        Operações Vinculadas <span style="color:var(--c-red);">*</span>
+                    </label>
+                    <div style="display:flex; gap:10px; font-size:11px;">
+                        <a href="javascript:void(0)" onclick="selectAllOps('novo')" style="color:var(--c-blue); font-weight:700; text-decoration:none;">Marcar Todas</a>
+                        <span style="color:var(--c-border);">|</span>
+                        <a href="javascript:void(0)" onclick="clearAllOps('novo')" style="color:var(--c-muted); font-weight:600; text-decoration:none;">Desmarcar</a>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom:6px;">
+                    <input type="text" class="sel" id="usr-op-search" oninput="filterOpsList('novo')" placeholder="🔍 Filtrar filiais..." style="font-size:12px; padding:6px 10px; width:100%;">
+                </div>
+
+                <div id="usr-ops-container" style="max-height:160px; overflow-y:auto; border:1px solid var(--c-border); border-radius:var(--r-sm); padding:8px 10px; background:#F8FAFC; display:flex; flex-direction:column; gap:5px;">
+                    <span style="font-size:11.5px; color:var(--c-muted); text-align:center; padding:8px;">Carregando operações...</span>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
+                    <span id="usr-ops-count" style="font-size:11px; font-weight:700; color:#1D4ED8;">0 selecionadas</span>
+                    <span style="font-size:10.5px; color:var(--c-muted);">Pode vincular uma ou várias filiais</span>
+                </div>
+            </div>
+
+            <div id="notice-novo-matriz-operacao" style="display:none; padding:10px 14px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:var(--r-sm); color:#1D4ED8; font-size:11.5px; line-height:1.4;">
+                🏢 <strong>Perfil Matriz:</strong> Possui acesso global irrestrito a todas as operações do sistema.
+            </div>
+
+            <div id="novo-usr-error" style="display:none; padding:10px 14px; background:var(--c-red-lt); border:1px solid #FECACA; border-radius:var(--r-sm); color:var(--c-red); font-size:12px; font-weight:600;"></div>
+
+            <div class="modal-footer" style="padding-top:14px; display:flex; justify-content:flex-end; gap:8px;">
+                <button type="button" class="btn-ghost" onclick="closeModal('modal-novo-usuario')">Cancelar</button>
+                <button type="submit" class="btn-primary" id="btn-salvar-usr">
+                    <span id="txt-salvar-usr">Salvar e Enviar Convite</span>
+                    <span id="spin-salvar-usr" class="spinner" style="display:none; width:14px; height:14px; margin-left:6px;"></span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ═══ MODAL EDITAR USUÁRIO (APENAS MATRIZ) ═══ -->
+<div class="overlay" id="modal-editar-usuario">
+    <div class="modal" style="max-width:520px">
+        <div class="modal-top">
+            <div>
+                <div class="modal-eyebrow">CONTROLE DE ACESSOS</div>
+                <div class="modal-title">✏️ Editar Usuário &amp; Permissões</div>
+            </div>
+            <button class="btn-close" onclick="closeModal('modal-editar-usuario')">✕</button>
+        </div>
+        <p style="font-size:12px; color:var(--c-muted); margin-bottom:14px; line-height:1.4;">
+            Altere os dados cadastrais, perfil de acesso e filiais vinculadas a este usuário.
+        </p>
+
+        <form id="form-editar-usuario" class="form-stack" onsubmit="handleSalvarEdicaoUsuario(event)">
+            <input type="hidden" id="edit-usr-id">
+
+            <div class="form-row">
+                <label>Nome Completo</label>
+                <input type="text" class="sel" id="edit-usr-nome" required placeholder="Ex: João da Silva">
+            </div>
+
+            <div class="form-row">
+                <label>E-mail Corporativo</label>
+                <input type="email" class="sel" id="edit-usr-email" required placeholder="Ex: joao.silva@expressonepomuceno.com.br">
+            </div>
+
+            <div class="form-row">
+                <label>Telefone / WhatsApp (com DDD)</label>
+                <input type="text" class="sel" id="edit-usr-telefone" placeholder="Ex: (35) 99999-8888">
+            </div>
+
+            <div class="form-row">
+                <label>Perfil de Acesso</label>
+                <select class="sel" id="edit-usr-role" onchange="toggleOperacaoSelect('edit')" style="font-weight:600;">
+                    <option value="OPERACAO">Operação (Acesso restrito às suas unidades - Somente Leitura)</option>
+                    <option value="TREINAMENTO">Treinamento (Acesso total às ações das suas unidades, exceto usuários)</option>
+                    <option value="MATRIZ">Matriz (Acesso Total / Administrador Geral)</option>
+                </select>
+                <span id="edit-usr-root-note" style="display:none; font-size:11px; color:#D97706; margin-top:3px; font-weight:700;">
+                    👑 Usuário Root Admin deve permanecer como Matriz.
+                </span>
+            </div>
+
+            <div class="form-row" id="group-edit-usr-operacao">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <label style="font-weight:600; margin:0; font-size:12px; color:var(--c-text);">
+                        Operações Vinculadas <span style="color:var(--c-red);">*</span>
+                    </label>
+                    <div style="display:flex; gap:10px; font-size:11px;">
+                        <a href="javascript:void(0)" onclick="selectAllOps('edit')" style="color:var(--c-blue); font-weight:700; text-decoration:none;">Marcar Todas</a>
+                        <span style="color:var(--c-border);">|</span>
+                        <a href="javascript:void(0)" onclick="clearAllOps('edit')" style="color:var(--c-muted); font-weight:600; text-decoration:none;">Desmarcar</a>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom:6px;">
+                    <input type="text" class="sel" id="edit-usr-op-search" oninput="filterOpsList('edit')" placeholder="🔍 Filtrar filiais..." style="font-size:12px; padding:6px 10px; width:100%;">
+                </div>
+
+                <div id="edit-usr-ops-container" style="max-height:160px; overflow-y:auto; border:1px solid var(--c-border); border-radius:var(--r-sm); padding:8px 10px; background:#F8FAFC; display:flex; flex-direction:column; gap:5px;">
+                    <span style="font-size:11.5px; color:var(--c-muted); text-align:center; padding:8px;">Carregando operações...</span>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
+                    <span id="edit-usr-ops-count" style="font-size:11px; font-weight:700; color:#1D4ED8;">0 selecionadas</span>
+                    <span style="font-size:10.5px; color:var(--c-muted);">Pode vincular uma ou várias filiais</span>
+                </div>
+            </div>
+
+            <div id="notice-edit-matriz-operacao" style="display:none; padding:10px 14px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:var(--r-sm); color:#1D4ED8; font-size:11.5px; line-height:1.4;">
+                🏢 <strong>Perfil Matriz:</strong> Possui acesso global irrestrito a todas as operações do sistema.
+            </div>
+
+            <div class="form-row" style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--c-border);">
+                <label style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>Redefinir Senha Diretamente <span style="font-size:10.5px; color:var(--c-muted); font-weight:normal;">(Opcional)</span></span>
+                </label>
+                <input type="password" class="sel" id="edit-usr-senha" placeholder="Deixe em branco para manter a senha atual (mínimo 6 caracteres)">
+            </div>
+
+            <div id="edit-usr-error" style="display:none; padding:10px 14px; background:var(--c-red-lt); border:1px solid #FECACA; border-radius:var(--r-sm); color:var(--c-red); font-size:12px; font-weight:600;"></div>
+
+            <div class="modal-footer" style="padding-top:14px; display:flex; justify-content:flex-end; gap:8px;">
+                <button type="button" class="btn-ghost" onclick="closeModal('modal-editar-usuario')">Cancelar</button>
+                <button type="submit" class="btn-primary" id="btn-salvar-edit-usr">
+                    <span id="txt-salvar-edit-usr">Salvar Alterações</span>
+                    <span id="spin-salvar-edit-usr" class="spinner" style="display:none; width:14px; height:14px; margin-left:6px;"></span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ═══ MODAL GERENCIAR WHATSAPP USUÁRIO (APENAS MATRIZ) ═══ -->
+<div class="overlay" id="modal-whatsapp-usuario">
+    <div class="modal" style="max-width:480px">
+        <div class="modal-top">
+            <div>
+                <div class="modal-eyebrow" style="color:#059669;">WHATSAPP & CONVITE</div>
+                <div class="modal-title" id="m-wa-title">📱 Convidar via WhatsApp</div>
+            </div>
+            <button class="btn-close" onclick="closeModal('modal-whatsapp-usuario')">✕</button>
+        </div>
+        
+        <div style="background:#F8FAFC; border:1px solid var(--c-border); border-radius:var(--r-sm); padding:12px 14px; margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:13.5px; font-weight:700; color:var(--c-text);" id="m-wa-nome">–</span>
+                <span id="m-wa-operacao" style="font-size:11px; font-weight:700; color:#1D4ED8; background:#EFF6FF; border:1px solid #BFDBFE; padding:2px 7px; border-radius:4px;">–</span>
+            </div>
+            <div style="font-size:12px; color:var(--c-muted); margin-top:3px; font-family:'JetBrains Mono', monospace;" id="m-wa-email">–</div>
+        </div>
+
+        <div class="form-stack">
+            <input type="hidden" id="m-wa-userid" value="">
+            <div class="form-row">
+                <label>Número do WhatsApp (com DDD)</label>
+                <input type="text" class="sel" id="m-wa-telefone" placeholder="Ex: (35) 99999-8888" style="font-weight:600; font-size:14px;">
+                <span style="font-size:11px; color:var(--c-muted); margin-top:3px;">Ex: 35999998888 ou (35) 99999-8888</span>
+            </div>
+
+            <!-- Feedback de erro (estilo vermelho solicitado) -->
+            <div id="m-wa-error" style="display:none; padding:12px 14px; background:#FEF2F2; border:1px solid #FCA5A5; border-radius:8px; color:#991B1B; font-size:12px; font-weight:600; line-height:1.5;"></div>
+
+            <div style="display:flex; flex-direction:column; gap:10px; margin-top:16px;">
+                <button type="button" class="btn-primary" id="btn-wa-disparar" onclick="executarDisparoRoboWhatsapp()" style="background:linear-gradient(135deg, #10B981, #059669); border:none; padding:12px 16px; font-size:13.5px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 12px rgba(16, 185, 129, 0.25);">
+                    <span id="txt-wa-disparar">🤖 Disparar Convite via Robô</span>
+                    <span id="spin-wa-disparar" class="spinner" style="display:none; width:16px; height:16px; border-color:#fff; border-top-color:transparent;"></span>
+                </button>
+
+                <div style="display:flex; gap:8px;">
+                    <button type="button" class="btn-ghost" id="btn-wa-web" onclick="abrirWebWhatsappManual()" style="flex:1; padding:9px 12px; font-size:12px; font-weight:600; color:#059669; border-color:#A7F3D0; background:#ECFDF5;">
+                        💬 Abrir no WhatsApp Web
+                    </button>
+                    <button type="button" class="btn-ghost" onclick="salvarApenasTelefone()" style="padding:9px 14px; font-size:12px; font-weight:600; color:var(--c-text);">
+                        💾 Salvar Telefone
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ MODAL SUCESSO JOINHA 👍 ═══ -->
+<div class="overlay" id="modal-sucesso-joinha">
+    <div class="modal" style="max-width:380px; text-align:center; padding:32px 24px;">
+        <div style="font-size:56px; line-height:1; margin-bottom:14px; filter: drop-shadow(0 4px 12px rgba(16,185,129,0.3));">
+            👍
+        </div>
+        <h3 id="joinha-title" style="margin:0 0 8px 0; font-size:18px; font-weight:800; color:var(--c-text);">
+            Convite Enviado!
+        </h3>
+        <p id="joinha-desc" style="margin:0 0 24px 0; font-size:13px; color:var(--c-muted); line-height:1.5;">
+            A mensagem com o link de ativação foi transmitida com sucesso para o WhatsApp do usuário.
+        </p>
+        <button type="button" class="btn-primary" onclick="closeModal('modal-sucesso-joinha')" style="width:100%; padding:10px 16px; font-size:13.5px; font-weight:700; background:linear-gradient(135deg, #10B981, #059669);">
+            Entendido
+        </button>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script src="{{ url_for('static', filename='js/app.js') }}?v={{ v }}"></script>
+</body>
+</html>
